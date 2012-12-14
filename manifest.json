@@ -1,0 +1,33 @@
+{
+  "name": "Scrapbook",
+  "version": "1.0.7",
+  "icons": {
+    "48": "images/scrap48.png",
+    "128": "images/scrap128.png"
+  },
+  "description": "Scrapbook merges all the fragmented features in various scrapbook implementations into one.. How? Read on below..",
+  "background_page": "background.html",
+  "options_page": "options.html",
+  "browser_action": {
+    "default_title": "Scrapbook",
+    "default_icon": "images/scrap128.png",
+    "popup": "popup.html"
+  },
+  "permissions": [
+	"tabs",
+	"unlimited_storage",
+	"http://*/", 
+	"https://*/",
+	"notifications"
+	  ],
+  "content_scripts": [
+		{
+		  "matches": ["http://*/*","file:///*/*", "https://*/*"],
+		  "css":["css/sbui.css", "css/jquery-ui-1.8.1.custom.css", "css/jquery.alerts.css"],
+		  "images":["images/save.png"],	
+		  "js": [ "js/jquery-1.4.2.min.js", "js/jquery-ui-1.8.4.custom.min.js", "js/jquery.alerts.js" , "scrobblepage.js", "contentscript.js"]
+		 
+		}
+	]
+  
+}

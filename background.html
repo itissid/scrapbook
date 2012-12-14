@@ -1,0 +1,262 @@
+<html>
+  <head>
+    <script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+
+
+	<script type="text/javascript" src="sbstorage.js"></script>
+	<script type="text/javascript" src="frontend.js"></script>
+	<script type="text/javascript" src="background.js"></script>
+	<script type="text/javascript" src="js/jquery.jstree.js"></script>
+	<script>
+		SBookInterface =function(params){
+			this.sBookInterfaceData ={
+				dbName : params.dbName,
+				dispName : params.dbName,
+				dbSize : params.dbSize,
+				dbVersion : params.dbVersion
+			}
+		}
+		window.isPending = false;
+		flag1 = false;//This is a protector against sending the CS data every time.
+		dataToRender = {};
+		saveSoonParams = null;
+		cachedAnnotationData = null;
+		cachedNotesData = null;
+		var defaultParams =  {dbName:'DefaultSbook' ,dbVersion:1.0, dbSize:5000*1024*1024 }
+		window.sbookInterface = new SBookInterface(defaultParams);
+		var w = new Worker('backgroundworker.js');
+		var initCacheFlag = false;//used first time by the popup to load cache...
+		
+		w.onmessage = function(event){
+			 /** 
+			 * cmaction: context menu action, no callbacks. I am repairing view. 
+			 * popupaction: opened a popup, call back to popup window.
+			 * latentaction: any other action that does not require a callback.
+			 */
+			 
+			 var params = event.data;
+			 switch(params.action){
+				 
+			  case 'popupaction':
+				 console.log('Done popup action');
+				 window.JSONjtreeDataCache = params.data;
+				 initCacheFlag = true;
+				 var popup = chrome.extension.getViews({type:'popup'})[0];
+				 if(popup){
+					 popup.initCompleted();
+				 }
+				 break;
+			  case 'cmaction':
+				console.log('Done Context Menu Action');
+				 initCacheFlag = true;
+				break;
+			  case 'latentaction':
+				console.log('Done latent action');
+				 initCacheFlag = true;
+				break;
+			  case 'default':
+				console.log('Cant do unknown action, I got: ')
+				console.log(params);
+				initCacheFlag = false;
+			  }
+			
+			 
+		};
+		w.onerror = function(error){
+			console.error(error);
+			initCacheFlag = false;
+		}
+		//called to redo cache
+		var cacheRedoAction = function(action){
+			
+			w.postMessage({action: action});
+		}
+		
+		
+		/*Call this from options page to change the scrapbook a v1.1 feature*/
+		function setScrapBook(params){
+			window.sbookInterface = new SBookInterface(param);
+			
+		}
+		window.bookFE = new scrapBookFrontEnd({
+			placeholder:'messages',folderPlaceHolder :  'foldermenu', sbookPlaceHolder : 'sbookmenu' ,  
+			dbName:sbookInterface.sBookInterfaceData.dbName ,dbVersion:sbookInterface.sBookInterfaceData.dbVersion,
+			dbSize:sbookInterface.sBookInterfaceData.dbSize 
+		});
+		function initBook(){
+			
+			//TODO: initialize the configuration also
+			createTables();
+			
+		}
+	
+	
+		//This is to set URL of pages we open from the web only...
+		chrome.tabs.onCreated.addListener(function(tab) {
+			
+			console.log('new page opened.');
+			
+			var s = /http|https|file:\/\//;
+			
+			if(tab.url && s.test(tab.url)){
+				 chrome.tabs.sendRequest(tab.id, {requestType:"setpageproperty", propName: 'url', propValue:tab.url}, function(response) {
+					 //snub it
+				 })
+			}
+			
+		})
+		
+		
+		//send in the data to render on the newly opened page
+		chrome.extension.onRequest.addListener(
+			function(request, sender, sendResponse) {
+			
+			if (sender.tab  && request.requestType ==  'downloadFile'){
+				console.log('Downloading file...')
+				handleDownloadFile(request, sendResponse);
+			}
+			if (sender.tab && request.requestType ==  'deletePages'){
+				console.log('Deleteing file...')
+				deletePagesDB(request, function(retParams){
+					console.log('Deleted some files:');
+					console.log(retParams.pageids);
+					//TO DO: integrate with WW.
+					redoCache(function(){;
+						sendResponse(retParams);
+					})
+					
+					},function(error){
+						
+						window.sbnotification = webkitNotifications.createNotification(
+							  'images/scrap48.png',  
+							  'Scrapbook',  
+							  'Error while deleting pages: '+error.message  // notification body text
+						);
+						window.sbnotification.show();
+						setTimeout('window.sbnotification.cancel()',3000)
+						
+					});
+			}
+			if(sender.tab && request.requestType =='getSBPageList'){
+				
+				getDataForOptionsPageDB(function(data){
+						params = {}
+						for(i = 0;i<data.rows.length;i++){
+							params[i] = {pageid: data.rows.item(i).pageid, title: data.rows.item(i).nickname, foldername:data.rows.item(i).foldername, url: data.rows.item(i).url };
+							
+						}
+						sendResponse({data:params})
+				}, function(error){
+					
+					 window.sbnotification = webkitNotifications.createNotification(
+							  'images/scrap128.png',  
+							  'Scrapbook',  
+							  'Error while managing scrapbook: '+error.message  // notification body text
+					);
+					window.sbnotification.show();
+					setTimeout('window.sbnotification.cancel()',3000)
+				})
+				//sendResponse('hello world!');
+			}
+			if (sender.tab  && request.requestType == "savepage"){
+				//save the annotations on this page...
+				console.log('Saving page...')
+				saveAnnotationsOnPage(sendResponse, request.params);
+			}
+			/*Automatic saving of the web page..*/
+			if (sender.tab  && request.requestType == "savesoon"){
+				console.log('Marked for saving: '+request.params)
+				window.saveSoonParams = request.params;				
+			}
+			if(sender.tab  && request.requestType == "scrappedpage"){
+			
+			    var params = request;
+				
+				//Check for the oldpage
+				//save if page is new
+				if(request.status=='OK' && !params.isold ){
+					console.log('Saving new page');
+					//TO DO: Delegate heavy tasks to web workers...
+					try{
+					saveNewPageDB(params, function(retParams){
+							var popup = chrome.extension.getViews({type:'popup'})[0];
+							console.log('Updating cache...');
+							//Dont redo cache. Just update it.
+					
+							console.log('Folder ID:'+params.folderid);
+							console.log('pageID: '+retParams.pageid);
+							
+							//TO DO If quick scrap was pressed before menu was loaded AND web worker
+							// was not completed(Cache flag). Exit(or spawn web worker again. It will just redo the cache). 
+							// User will oick it up on opening popup again...
+							//TODO: make an thread safe events.
+							redoCache(function(){
+								
+								if(popup){
+									popup.scrappedpage({folderid: params.folderid, pageid:retParams.pageid , title: params.title });
+									window.isPending  = false;
+									
+								}
+							
+							});
+						
+						} , function(error){
+								console.log(error.message);
+								window.isPending  = false;//Release lock...
+						});
+					}catch(err){
+						window.isPending  = false;
+					}
+				
+				}
+				else if(request.status=='OK' && params.isold){
+					
+						console.log('Overwriting page...');
+						try{
+						overwritePageDB(params, function(message){
+							//Dont redo the cache 
+							
+							var popup = chrome.extension.getViews({type:'popup'})[0];
+							if(popup){
+								console.log(message);
+								
+								$(popup.document).find('#sbsavepagetext').empty()
+								//$(popup.document).find('#sbsavepagetext').remove()
+							
+							}
+							window.sbnotification = webkitNotifications.createNotification(
+									  'images/scrap128.png',  // icon url - can be relative
+									  'Scrapbook',  // notification title
+									  'Page overwritten.'  // notification body text
+								);
+							window.sbnotification.show();
+							setTimeout('window.sbnotification.cancel()',3000);
+							
+							window.isPending  = false;	
+							} ,function(error){
+								console.log(error.message);
+								window.isPending  = false;
+							})
+						}catch(err){
+							window.isPending  = false;
+						}
+					
+				}else{
+					console.log(request.message);
+				}			
+			//Unrecognized request...			
+			}else{
+				
+				console.log(request.message);
+			}
+			console.log('Got request type:'+ request.requestType)
+		//End of addlistener		
+		});
+		  
+		
+		
+		</script>
+    <body onload = 'initBook()'>
+    </body>
+  </head>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+ <link type="text/css" href="css/sbui.css" rel="stylesheet" media="all" />
+ <link type="text/css" href="css/jquery-ui-1.8.1.custom.css" rel="stylesheet" media="all" />
+ <link type="text/css" href="css/jquery.alerts.css" rel="stylesheet" media="all" />
+ <script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+ <script type="text/javascript" src="sbnotes.js"></script>
+ <script type="text/javascript" src="doAnnotation.js"></script>
+ <script type="text/javascript" src="toolbar.js"></script>
+ <script type="text/javascript" src="savepage.js"></script>
+ <script type="text/javascript" src="js/jquery.alerts.js"></script>
+ <script type = "text/javascript" src = "js/jquery-ui-1.8.4.custom.min.js"></script>
+<script>
+
+$(document).ready(function(){
+	var globalWindow = chrome.extension.getBackgroundPage();
+	var d1 = globalWindow.dataToRender;
+	
+    var innerFrame = $('#sbinnerframe')[0].contentDocument;
+	console.log(innerFrame.URL);
+	//$('#sbinnerframe').bind('onload', function(){ console.log('Loading Iframe...')}) Wont work  because of sand boxing...:(
+	innerFrame.open();
+	innerFrame.write(d1);//Sandboxed and XSS safe...Thank you chrome and HTML5...
+	innerFrame.close();
+	//alert('Iframe SH:'+ $('#sbinnerframe')[0].contentDocument.body.scrollHeight);
+	//alert('Doc sh:'+document.body.scrollHeight);
+	//The Ugly hack for "scroll bar hell" problem..
+	h_timer = null;
+	iter_ct = 0
+	setH = function(){
+		$('#sbinnerframe').attr('height',$('#sbinnerframe')[0].contentDocument.body.scrollHeight);
+		 //alert('Iframe content SH:'+ $('#sbinnerframe')[0].contentDocument.body.scrollHeight);
+		 //alert(' Iframe height:'+$('#sbinnerframe')[0].height);
+		 var scrollh = $('#sbinnerframe')[0].contentDocument.body.scrollHeight;
+		 var iframeh = $('#sbinnerframe')[0].height;
+		 if(scrollh>= iframeh && iter_ct <10){
+			 $('#sbinnerframe').attr('height',scrollh+10);
+			 iter_ct++;
+			 h_timer = setTimeout("setH()", 100);
+		 }else{
+			 $($('#sbinnerframe')[0].contentDocument).find('noscript').remove();//No scripts make page look bad...
+			 clearTimeout(h_timer);
+		 }
+		 
+	 }
+	h_timer = setTimeout("setH()", 100);
+	
+	
+	
+})
+
+</script>
+</head>
+<body frameborder='0' border ='0'>
+		<iframe z-index='20' frameborder='0'  width = '100%' height='0' sandbox="allow-same-origin" id = 'sbinnerframe'  src = 'dummy.html'>
+			
+
+		</iframe>
+    </body >
+    
+
+</html>

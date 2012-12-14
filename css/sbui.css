@@ -1,0 +1,122 @@
+#sbsite-body-content {
+	padding: 15px 15px 15px 15px ;
+}
+
+#sbsite-bottom-bar {
+	background-color: #F0F0F0 ;
+	border-top: 1px solid #CCCCCC ;
+	bottom: 0px ;
+	font-family: verdana, arial ;
+	font-size: 11px ;
+	height: 30px ;
+	position: fixed ;
+	width: 100% ;
+	z-index: 1000 ;
+}
+
+#sbsite-bottom-bar-frame {
+	height: 30px ;
+	margin: 0px 10px 0px 10px ;
+	position: relative ;
+}
+
+#sbsite-bottom-bar-content {
+	padding: 3px 0px 0px 0px ;
+}
+#savesbpage{
+	float:left; 
+	position:relative;
+	height: 50px;
+	width: 20px;
+	padding-right:1%;
+}
+#savesbpage img{
+	height:51%;
+	width:100%;
+	border-bottom-left-radius: 5px, 5px;
+	border-bottom-right-radius: 5px, 5px;
+	border-top-left-radius: 5px, 5px;
+	border-top-right-radius: 5px, 5px;
+}
+#removesbannotation{
+	float:left; 
+	position:relative;
+	height: 50px;
+	width: 20px;
+	padding-right:1%;
+}
+#removesbannotation img{
+	height:51%;
+	width:100%;
+	border-bottom-left-radius: 5px , 5px;
+	border-bottom-right-radius: 5px , 5px;
+	border-top-left-radius: 5px, 5px;
+	border-top-right-radius: 5px, 5px;
+}
+#sbseparator{
+	float:left; 
+	position:relative;
+	height: 50px;
+	width: 25px;
+}
+#undopage{
+	float:left; 
+	position:relative;
+	height: 50px;
+	width: 25px;
+	padding-right:1%;
+	
+}
+#undopage img{
+	height:51%;
+	width:100%;
+	border-bottom-left-radius: 5px, 5px;
+	border-bottom-right-radius: 5px, 5px;
+	border-top-left-radius: 5px, 5px;
+	border-top-right-radius: 5px, 5px;
+}
+#sbseparator img{
+
+	height:51%;
+	width:100%;
+	
+}
+
+
+div.imgscaledown{
+	height:50px;
+	width:50px;
+}
+/*
+#sbsite-body-container {
+	_height: 100% ;
+	_overflow: hidden ;
+	_width: 100% ;
+}
+
+#sbsite-body-container {
+	_overflow-y: scroll ;
+	_overflow-x: hidden ;
+	_position: relative ;
+}
+
+/* To make up for scroll-bar. */
+/*
+#sbsite-bottom-bar {
+	_bottom: -1px ;
+	_position: absolute ;
+	_right: 16px ;
+}
+
+/* To make up for overflow left. */
+/*
+#sbsite-bottom-bar-frame {
+	_margin-left: 26px ;
+}
+
+/* To fix IE6 display bugs. */
+/*
+#sbmenu div {
+	_display: inline-block ;
+	_width: 99% ;
+}*/

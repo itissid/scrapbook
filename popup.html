@@ -1,0 +1,297 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<title>Scrapbook!</title>
+
+	<script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="css/jquery-ui-1.8.1.custom.css" media="screen">
+	<script src="js/jquery-blink.js" language="javscript" type="text/javascript"></script>
+
+	<script type="text/javascript" src="js/jquery.jstree.js"></script>
+	<script type="text/javascript" src="frontend.js"></script>
+	<script type="text/javascript" src="sbstorage.js"></script>
+	<script type="text/javascript" src="popup.js"></script>
+	<script type="text/javascript" src="background.js"></script>
+	<!-- Core files for alert boxes-->
+	<script src="js/jquery.alerts.js" type="text/javascript"></script>
+	<link href="css/jquery.alerts.css" rel="stylesheet" type="text/css" media="screen" />
+	
+	<style type="text/css">			
+		
+		body{ font: 85% "Trebuchet MS", sans-serif ; margin: 5px;  min-width:357px;
+		overflow-x:hidden; height: '100%'}			
+		.image-refresh-book {position: absolute; right: 148px ; top:98px; width:19px; height:18.5px;}
+		#sbsavepage {height: 20px; position: absolute; right: 213px; top: 7px; width: 21px;}
+		#magglass {height: 21px; top:98px; right:178px; position: absolute ; }
+
+		#refreshBooktext  {height: 20px; position: absolute; right: 62px; top: 7px; width: 21px;}
+	</style>
+</head>	
+<script>
+
+
+//Scrap the page data... Called from scrap button or from 
+function scrapPage(data){
+	//ok so this is now quik scrap: add logic to add page at bottom of scrapbook.
+	//Need to use jstree API to create the node and then focus on  the node...
+	
+	var temp = function(){
+		chrome.tabs.getSelected(null, function(tab) {
+			
+			var params ={};
+			params.url = tab.url;
+			var title = document.getElementById('PageName'); 
+			
+			
+			if(!title || title.value.trim()==""){
+				jAlert('Please enter a page name to save.');
+				return;
+			}
+			title = title.value||tab.title;//TO DO : Get this from the jAlert box.
+			//By default. 
+			params.title = title;
+			params.folderid = data.folderid? parseInt(data.folderid): -1;
+			params.folderName = data.folderName? data.folderName: 'root'; 
+			
+			
+			console.log('Creating record for page: '+params.title +' with fid'+params.folderid);
+			
+			
+			var callme = function(){
+				if(!params.isold || (params.isold && params.overwrite)){
+						 
+						chrome.tabs.sendRequest(tab.id, {requestType:"scrap", reqParams: params}, function(response) {
+							 //TO DO display progress bar while page is scrapped...
+							 console.log('Content script says:'+response.message);
+							 
+							 if(response.status=='BAD'){
+								 window.bookFE.errorcallback(response);
+								 bgwindow.isPending  = false;
+							 }
+						})
+					}//Else dont send a request	
+			}
+			
+			isOldPageInDB ( {title: params.title,folderid: params.folderid }, function(response){
+				//save if page is new
+				if(response.status=='OK' && response.code == 1){
+					params.isold =false;
+					
+					//Ask CS to fetch data... wait in BG page...
+					callme();
+				  }
+				else{
+					jConfirm("Page "+params.title+" exists. Overwrite?", 'Confirmation Dialog', function(r) {
+						if(r==true){
+							params.isold =true;
+							params.overwrite = true;
+						}else{
+							params.isold =true;
+							params.overwrite = false;
+							bgwindow.isPending  = false;
+						}
+						if(!params.isold || (params.isold && params.overwrite)){
+							$('#scrapbutton').after('<span id="sbsavepagetext"  class = "load-sbtext" value="saving page..." > Saving page.</span>');
+							$('#sbsavepagetext').blink({delay:900});
+							callme();
+						
+						}
+					
+					})
+					
+				}
+			}
+			,function(e){
+				bgwindow.isPending  = false;//Release the lock at all errors
+				console.log(e.message)
+			  })
+			});	
+	}
+	var f = 1;
+	var bgwindow = chrome.extension.getBackgroundPage();
+	chrome.tabs.getSelected(null,function dummy(tab){
+		var m = /http:\/\/.*|file:\/\/.*|https:\/\/.*/	
+		var ext = /chrome[.]google[.]com\/extension/;
+		console.log(tab.url);
+		if(!m.test(tab.url)){
+			jAlert('Cant scrap anything but a http(s). If this page was opened from the extesnions menu. Save from the toolbar button.');
+			f=0;
+		}else if(ext.test(tab.url)){
+			jAlert('Cant scrap extension gallery pages.');
+			f=0;
+		}else{
+			temp();
+		}
+	})
+	
+	
+	bgwindow.isPending = true;//Serialize all requests...
+};
+
+function refreshsbook(){
+	console.log('Refreshing book...');
+	var bgwindow = chrome.extension.getBackgroundPage();
+	bgwindow.redoCache(function(){
+		$('#refreshBook').after('<span id="refreshBooktext"  class = "refresh-sbtext" > Refreshing</span>');
+		$('#refreshBooktext').blink({delay:900});
+		
+		bookFE.renderFullBook(function(){
+				console.log('Rendered all menus...');
+					/*$('#sbtoolmenu').append('<div><img id="refreshBook" title="Refresh book" src="images/refresh-icon.png" class="image-refresh-book sb_ui-corner-all  sb_ui-state-default" onclick="refreshsbook()"></div>')	
+					$('#refreshBook').hover(
+						function() { 
+							$(this).addClass('sb_ui-state-hover'); 
+						}, 
+						function() { 
+							$(this).removeClass('sb_ui-state-hover'); 
+						}
+					);*/
+					$('#refreshBooktext').empty();
+					$('#refreshBooktext').remove();
+					
+
+		});
+	});
+
+}
+
+/**Call backs from the front end when pages are selected*/
+function selectedPage(pageID){
+	console.log('Fetching page from SB...');
+	//Steps: Selected a new page... Get its URL of the page by using its ID. Open the page
+	//The page will send in the opentab message to the 
+	
+	var params={};
+	params.pageid = pageID //sel[0].substring(1,sel[0].length).trim();
+	var globalWindow = chrome.extension.getBackgroundPage();
+	var callback = function(data, notedata){//data from DB...
+		
+		var noteDataToRender = notedata.rows;
+		
+		if( data.rows.item(0).data ){
+			globalWindow.dataToRender = data.rows.item(0).data;
+			globalWindow.urlOfPage = data.rows.item(0).url;
+			globalWindow.titleOfPage =  data.rows.item(0).nickname;
+			globalWindow.folderidOfPage =  data.rows.item(0).folderid;
+			globalWindow.folderNameOfPage =  data.rows.item(0).foldername;
+		}
+		
+		
+		var notesArr = new Array();
+		for(i=0; noteDataToRender!=null && noteDataToRender!=undefined && i<noteDataToRender.length;i++){//set in the popup line 253
+			notesArr[i] = noteDataToRender.item(i)
+
+		}
+		globalWindow.noteDataToRender = notesArr;
+		
+		chrome.tabs.create({url: "newpage.html"}, function(tab){});
+		
+	
+	}
+	getPageDataDB(params, callback, function(error){
+			window.sbnotification = webkitNotifications.createNotification(
+				  'images/scrap48.png',  
+				  'Scrapbook',  
+				  'Error while opening page: '+error.message  // notification body text
+			);
+			window.sbnotification.show();
+			setTimeout('window.sbnotification.cancel()',3000)
+	});
+	
+}
+
+/**When the icon is clicked check for selected folder and use that**/
+function addFolder(parentParams){
+	
+	params ={};
+	params.parentFolderId = parseInt(parentParams.parentid);
+	
+	params.parentFolder = parentParams.parentfoldername;
+
+	params.level =  parseInt(parentParams.parentlevel)+1;
+	
+	
+	console.log('Attempting to add folder to '+params.parentFolder+' having parent ID:'+params.parentFolderId);
+	
+	jPrompt('Folder Name', 'New Folder', 'Prompt Dialog', function(r) {
+		if( r && r.toString().trim()!='' ) {
+			params.folderName = r.toString().trim();
+			
+			checkAndAddFolderDB(params, function(retParams){
+				if(retParams.code == 0){
+					
+					//Add a new node...
+					var parentobj = $("#sbmainmenu").find('li[rel="folder"][id = '+params.parentFolderId+']');
+					$("#sbmainmenu").jstree("create_node",  parentobj , 0 , new jtf({foldername: params.folderName , folderid:retParams.folderid, level: params.level, state: 'open'}).f , function(){
+						
+						console.log('Created folder. Should appear in tree');
+					} , true )
+					//Open the node
+					$("#sbmainmenu").jstree('open_node' ,parentobj , false , false);
+					//Redo or repair cache?
+					var globalWindow = chrome.extension.getBackgroundPage();
+					//TO DO: Check if WW is using lock.Push to WW...
+					globalWindow.redoCache(function(){
+							console.log('Redoing cache...')
+					});
+				}else if(retParams.code ==1){
+					
+					bookFE.callback(retParams);
+				
+				}
+			},function(error){
+				
+				bookFE.errorcallback(error);
+				
+			});
+		}else{
+			//bookFE.errorcallback({status:'BAD', message:'Bad folder name. Try again', code: 0});
+			return;
+		}
+	});
+	
+}
+
+
+</script>
+
+	
+
+<body onload='init()'>
+<div id='messages' class = "sb_ui-widget">
+	
+</div>
+
+
+<div>
+<button id="scrapbutton" class="sb_ui-button sb_ui-widget sb_ui-state-default sb_ui-corner-all sb_ui-button-text-only" role="button" aria-disabled="false"
+	onclick="scrapPage({})">
+	<span class="sb_ui-button-text">Quick Scrap</span>
+</button>
+</div>
+<div>
+Page name to scrap:
+<input type="text" id="PageName" />
+</div>
+
+
+
+
+<!--Idea is to press this marker and select an area of text-->
+
+
+
+<HR WIDTH="100%" SIZE="3"> 
+
+<strong title='Select a page to open'>My Scrapbook</strong>
+<div id = 'sbtoolmenu'>
+<div><input type="text" id="sbsearch"></input></div>
+<div><img src="images/mag.png" id = "magglass"  title = "Search"><img></div>
+</div>
+<div id="sbmainmenu" >
+	
+</div>
+</body>
+
+</html>

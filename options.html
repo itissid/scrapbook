@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title id="page-title">Manage Scrapbook</title>
+    <link rel="stylesheet" href="css/options.css" type="text/css"/>
+    <link type="text/css" href="css/jquery-ui-1.8.1.custom.css" rel="stylesheet" /> 
+	<script type="text/javascript" src="js/jquery-1.4.2.min.js"></script> 
+	<script type="text/javascript" src="sbstorage.js"></script> 
+    <script type="text/javascript" src="js/jquery-ui-1.8.4.custom.min.js"></script>
+   
+    <script src="options.js"></script>
+  </head>
+  <body>
+    <div id="title-block">
+      <img src="images/scrap128.png"/ style ='height:28px;'>
+      <span id="title">Manage Scrapbook</span>
+    </div>
+    <div id="container" class="sb_sb_ui-widget sb_ui-widget-content sb_ui-corner-all">
+      <div id="buttons" class="sb_ui-helper-reset sb_ui-widget-header sb_ui-corner-top">
+        <button type="button" id="select-all-button" onclick="selectAll()"><span class="sb_ui-button-text">SelectAll</span></button>
+        <button type="button" id="deselect-all-button" onclick="deselectAll()"><span class="sb_ui-button-text">Deselct All</span></button>
+        <button type="button" id="delete-button" onclick="deletePages()"><span class="sb_ui-button-text">Delete</span></button>
+        <input type="text" id="search" onkeyup="searchChange()"/>
+      </div>
+      <table id="content" class="sb_ui-helper-reset sb_ui-widget-content sb_ui-corner-bottom">
+    </div>
+  </body>
+</html>
