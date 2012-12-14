@@ -1,0 +1,10 @@
+This is a port to github of my old project 
+http://code.google.com/p/chrome-scrapbook-project/
+There were 5000 users of this project which inspired me
+to dig up this project from the dead to add new features to it.
+
+This code makes up the chrome extension called scrapbook
+What I plan to do with it now is polish it and make it better.
+1) Rethink the design and sit with Eric on redesign..
+2) Make changes as per Eric's suggestions
+3) Add some features as per http://code.google.com/p/chrome-scrapbook-project/issues/list
