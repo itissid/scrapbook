@@ -127,7 +127,7 @@ function showNoPages() {
 
 function showPageList() {
   showNoPages();
-  chrome.extension.sendRequest({requestType: 'getSBPageList'},
+  chrome.runtime.sendMessage({requestType: 'getSBPageList'},
     function(resp){
 	var dat = resp.data;
 	var emptyflag = true;	
@@ -152,7 +152,7 @@ function deletePages() {
     ids.push(checked[i].id.replace(/^pgid-/,''));
   }
   if(ids.length>0){
-	  chrome.extension.sendRequest({requestType: 'deletePages', pageids: ids}, function(response){
+	  chrome.runtime.sendMessage({requestType: 'deletePages', pageids: ids}, function(response){
 		if (response.status =='OK' && response.pageids){
 			console.log('Deleted pages from sbook');
 			handlePagesDeleted(response);
@@ -290,4 +290,4 @@ function truncateText(text){
 		return text;
 	}
 }
-chrome.extension.onRequest.addListener(messageListener);
+chrome.runtime.onMessage.addListener(messageListener);

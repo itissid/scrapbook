@@ -108,7 +108,7 @@
 		
 		
 		//send in the data to render on the newly opened page
-		chrome.extension.onRequest.addListener(
+		chrome.runtime.onMessage.addListener(
 			function(request, sender, sendResponse) {
 			
 			if (sender.tab  && request.requestType ==  'downloadFile'){

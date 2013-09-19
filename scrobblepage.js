@@ -101,7 +101,7 @@ function DocumentSaver() {
 
   this.requestFile = function(href, callback, binary) {
     this.incrementWait();
-    chrome.extension.sendRequest({
+    chrome.runtime.sendMessage({
       requestType: 'downloadFile',
       href: href,
       binary: binary
