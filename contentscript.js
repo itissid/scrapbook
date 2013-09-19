@@ -19,7 +19,7 @@ window.pageProp ={
 
 //Event listener for recieving annotation requests from Extension
 //acts as client of the command pattern
-chrome.extension.onRequest.addListener(
+chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 	
 	/**The call back function needed for async actions......*/
@@ -94,7 +94,7 @@ chrome.extension.onRequest.addListener(
 						retParams.data = null;
 					}
 					console.log(retParams);
-					chrome.extension.sendRequest(retParams);	
+					chrome.runtime.sendMessage(retParams);	
 				});
 				//processDocument(retParams);
 

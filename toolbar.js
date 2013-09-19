@@ -174,11 +174,11 @@ function saveAnnotations (){
 			params.data = null;
 		}
 		console.log(params);
-		chrome.extension.sendRequest({requestType: 'savepage', params: params}, function(response) {
+		chrome.runtime.sendMessage({requestType: 'savepage', params: params}, function(response) {
 			displayMessage(response.message);
 			
 		});
-		//chrome.extension.sendRequest(params);	
+		//chrome.runtime.sendMessage(params);	
 	});
 	
 	
@@ -319,7 +319,7 @@ function displayMessage(message){
 }
 //Event listener for recieving annotation requests from Extension
 //acts as client of the command pattern
-chrome.extension.onRequest.addListener(
+chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 	
 	/**The call back function needed for async actions......*/
